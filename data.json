@@ -1,0 +1,113 @@
+{
+  "users": [
+    {
+      "id": 1,
+      "username": "gourmet",
+      "email": "uneven-stew-4n@icloud.com",
+      "password": "$2b$10$2WDH6swxdDL.xryBi0m/E.6lWhXIKcpBmvfTTU/6t29v1zT8qFpNC",
+      "created_at": "2025-09-28T21:12:00.443Z"
+    },
+    {
+      "id": 2,
+      "username": "luca",
+      "email": "luca.balice13@gmail.com",
+      "password": "$2b$10$dMXW1HL8nO0GnIforkTiyuwD363itRllN3MA41aYi.dwqMmm/LqRK",
+      "created_at": "2025-09-28T21:14:22.579Z"
+    }
+  ],
+  "workout_sheets": [
+    {
+      "id": 1,
+      "user_id": 1,
+      "name": "Push",
+      "text_content": "Panca Piana 3x8",
+      "parsed_exercises": [
+        {
+          "name": "Panca Piana",
+          "sets": 3,
+          "id": 1759093934413.601
+        }
+      ],
+      "total_volume": {
+        "Pettorali": {
+          "primary": 3,
+          "secondary": 0
+        },
+        "Deltoidi Anteriori": {
+          "primary": 3,
+          "secondary": 0
+        },
+        "Tricipiti": {
+          "primary": 0,
+          "secondary": 1.5
+        },
+        "Deltoidi Mediali": {
+          "primary": 0,
+          "secondary": 1.5
+        }
+      },
+      "created_at": "2025-09-28T21:12:14.431Z",
+      "updated_at": "2025-09-28T21:12:14.431Z"
+    },
+    {
+      "id": 2,
+      "user_id": 1,
+      "name": "Pull",
+      "text_content": "Panca Piana 3x14",
+      "parsed_exercises": [
+        {
+          "name": "Panca Piana",
+          "sets": 3,
+          "id": 1759094011558.667
+        }
+      ],
+      "total_volume": {
+        "Pettorali": {
+          "primary": 3,
+          "secondary": 0
+        },
+        "Deltoidi Anteriori": {
+          "primary": 3,
+          "secondary": 0
+        },
+        "Tricipiti": {
+          "primary": 0,
+          "secondary": 1.5
+        },
+        "Deltoidi Mediali": {
+          "primary": 0,
+          "secondary": 1.5
+        }
+      },
+      "created_at": "2025-09-28T21:13:31.598Z",
+      "updated_at": "2025-09-28T21:13:31.598Z"
+    },
+    {
+      "id": 3,
+      "user_id": 2,
+      "name": "Push",
+      "text_content": "croci cavi 14x14",
+      "parsed_exercises": [
+        {
+          "name": "croci cavi",
+          "sets": 14,
+          "id": 1759094082523.0293
+        }
+      ],
+      "total_volume": {
+        "Pettorali": {
+          "primary": 14,
+          "secondary": 0
+        },
+        "Deltoidi Anteriori": {
+          "primary": 0,
+          "secondary": 7
+        }
+      },
+      "created_at": "2025-09-28T21:14:42.543Z",
+      "updated_at": "2025-09-28T21:14:42.543Z"
+    }
+  ],
+  "nextUserId": 3,
+  "nextSheetId": 4
+}
