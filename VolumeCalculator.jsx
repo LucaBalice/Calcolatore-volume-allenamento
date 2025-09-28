@@ -1,13 +1,14 @@
 import React, { useState, useEffect } from 'react';
 import { Plus, Trash2, Edit3, Save, X, Calculator, ChevronDown, ChevronUp } from 'lucide-react';
 
-const VolumeCalculator = () => {
+const VolumeCalculator = ({ user, token }) => {
   const [workoutSheets, setWorkoutSheets] = useState([]);
   const [currentSheet, setCurrentSheet] = useState(null);
   const [showNewSheetForm, setShowNewSheetForm] = useState(false);
   const [newSheetName, setNewSheetName] = useState('');
   const [newSheetText, setNewSheetText] = useState('');
   const [showDetails, setShowDetails] = useState(false);
+  const [loading, setLoading] = useState(false);
 
   // Database degli esercizi basato sullo schema hypertrophy
   const exerciseDatabase = {
@@ -179,6 +180,108 @@ const VolumeCalculator = () => {
     'tirate volto': { primary: ['Deltoidi Posteriori'], secondary: ['Trapezio Medio'] },
   };
 
+  // API Functions
+  const apiCall = async (url, options = {}) => {
+    const response = await fetch(`http://localhost:5001${url}`, {
+      ...options,
+      headers: {
+        'Content-Type': 'application/json',
+        'Authorization': `Bearer ${token}`,
+        ...options.headers,
+      },
+    });
+
+    if (!response.ok) {
+      const error = await response.json();
+      throw new Error(error.error || 'Errore del server');
+    }
+
+    return response.json();
+  };
+
+  const loadWorkoutSheets = async () => {
+    try {
+      setLoading(true);
+      const sheets = await apiCall('/api/workout-sheets');
+      
+      // Mappa i dati dal server al formato atteso dal componente
+      const mappedSheets = sheets.map(sheet => {
+        const exercises = sheet.parsed_exercises || [];
+        // Ricalcola i dettagli per ogni scheda
+        const { volumeData, details, unrecognizedExercises } = calculateVolume(exercises);
+        
+        return {
+          id: sheet.id,
+          name: sheet.name,
+          exercises: exercises,
+          volumeData: sheet.total_volume || volumeData,
+          originalText: sheet.text_content || '',
+          details: details,
+          unrecognizedExercises: unrecognizedExercises
+        };
+      });
+      
+      setWorkoutSheets(mappedSheets);
+    } catch (error) {
+      console.error('Errore nel caricamento delle schede:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const saveWorkoutSheet = async (sheetData) => {
+    try {
+      const response = await apiCall('/api/workout-sheets', {
+        method: 'POST',
+        body: JSON.stringify({
+          name: sheetData.name,
+          text_content: sheetData.originalText,
+          parsed_exercises: sheetData.exercises,
+          total_volume: sheetData.volumeData
+        }),
+      });
+      return response;
+    } catch (error) {
+      console.error('Errore nel salvataggio della scheda:', error);
+      throw error;
+    }
+  };
+
+  const updateWorkoutSheet = async (sheetId, sheetData) => {
+    try {
+      await apiCall(`/api/workout-sheets/${sheetId}`, {
+        method: 'PUT',
+        body: JSON.stringify({
+          name: sheetData.name,
+          text_content: sheetData.originalText,
+          parsed_exercises: sheetData.exercises,
+          total_volume: sheetData.volumeData
+        }),
+      });
+    } catch (error) {
+      console.error('Errore nell\'aggiornamento della scheda:', error);
+      throw error;
+    }
+  };
+
+  const deleteWorkoutSheet = async (sheetId) => {
+    try {
+      await apiCall(`/api/workout-sheets/${sheetId}`, {
+        method: 'DELETE',
+      });
+    } catch (error) {
+      console.error('Errore nell\'eliminazione della scheda:', error);
+      throw error;
+    }
+  };
+
+  // Load sheets on component mount
+  useEffect(() => {
+    if (user && token) {
+      loadWorkoutSheets();
+    }
+  }, [user, token]);
+
   const findExerciseMatch = (exerciseName) => {
     const name = exerciseName.toLowerCase().trim();
     
@@ -314,27 +417,55 @@ const VolumeCalculator = () => {
     return { volumeData, details, unrecognizedExercises };
   };
 
-  const handleCreateSheet = () => {
+  const handleCreateSheet = async () => {
     if (!newSheetName.trim()) return;
     
-    const exercises = parseWorkoutText(newSheetText);
-    const { volumeData, details, unrecognizedExercises } = calculateVolume(exercises);
-    
-    const newSheet = {
-      id: Date.now(),
-      name: newSheetName.trim(),
-      exercises: exercises,
-      volumeData: volumeData,
-      details: details,
-      unrecognizedExercises: unrecognizedExercises,
-      originalText: newSheetText
-    };
-    
-    setWorkoutSheets([...workoutSheets, newSheet]);
-    setCurrentSheet(newSheet);
-    setShowNewSheetForm(false);
-    setNewSheetName('');
-    setNewSheetText('');
+    setLoading(true);
+    try {
+      const exercises = parseWorkoutText(newSheetText);
+      const { volumeData, details, unrecognizedExercises } = calculateVolume(exercises);
+      
+      const newSheet = {
+        name: newSheetName.trim(),
+        exercises: exercises,
+        volumeData: volumeData,
+        details: details,
+        unrecognizedExercises: unrecognizedExercises,
+        originalText: newSheetText
+      };
+      
+      const response = await saveWorkoutSheet(newSheet);
+      
+      // Ricarica le schede dal server per avere i dati aggiornati
+      await loadWorkoutSheets();
+      
+      // Trova e seleziona la scheda appena creata
+      const allSheets = await apiCall('/api/workout-sheets');
+      const createdSheet = allSheets.find(sheet => sheet.id === response.id);
+      if (createdSheet) {
+        const exercises = createdSheet.parsed_exercises || [];
+        const { volumeData, details, unrecognizedExercises } = calculateVolume(exercises);
+        
+        const mappedSheet = {
+          id: createdSheet.id,
+          name: createdSheet.name,
+          exercises: exercises,
+          volumeData: createdSheet.total_volume || volumeData,
+          originalText: createdSheet.text_content || '',
+          details: details,
+          unrecognizedExercises: unrecognizedExercises
+        };
+        setCurrentSheet(mappedSheet);
+      }
+      
+      setShowNewSheetForm(false);
+      setNewSheetName('');
+      setNewSheetText('');
+    } catch (error) {
+      alert('Errore nel salvataggio della scheda: ' + error.message);
+    } finally {
+      setLoading(false);
+    }
   };
 
   const handleUpdateSets = (sheetId, exerciseId, newSets) => {
@@ -365,10 +496,23 @@ const VolumeCalculator = () => {
     });
   };
 
-  const handleDeleteSheet = (sheetId) => {
-    setWorkoutSheets(prevSheets => prevSheets.filter(sheet => sheet.id !== sheetId));
-    if (currentSheet && currentSheet.id === sheetId) {
-      setCurrentSheet(null);
+  const handleDeleteSheet = async (sheetId) => {
+    if (!confirm('Sei sicuro di voler eliminare questa scheda?')) return;
+    
+    setLoading(true);
+    try {
+      await deleteWorkoutSheet(sheetId);
+      
+      // Ricarica le schede dal server
+      await loadWorkoutSheets();
+      
+      if (currentSheet && currentSheet.id === sheetId) {
+        setCurrentSheet(null);
+      }
+    } catch (error) {
+      alert('Errore nell\'eliminazione della scheda: ' + error.message);
+    } finally {
+      setLoading(false);
     }
   };
 
@@ -379,6 +523,15 @@ const VolumeCalculator = () => {
           <Calculator className="inline mr-2" />
           Calcolatore Volume Allenamento
         </h1>
+
+        {loading && (
+          <div className="flex justify-center mb-6">
+            <div className="bg-blue-50 border border-blue-200 rounded-lg px-4 py-3 flex items-center">
+              <div className="w-5 h-5 border-2 border-blue-600 border-t-transparent rounded-full animate-spin mr-3"></div>
+              <span className="text-blue-700 font-medium">Elaborazione...</span>
+            </div>
+          </div>
+        )}
         
         {/* Lista schede salvate */}
         <div className="bg-white rounded-lg shadow-md p-6 mb-6">
@@ -422,7 +575,7 @@ const VolumeCalculator = () => {
                     </button>
                   </div>
                   <p className="text-sm text-gray-600">
-                    {sheet.exercises.length} esercizi
+                    {(sheet.exercises || []).length} esercizi
                   </p>
                 </div>
               ))}
