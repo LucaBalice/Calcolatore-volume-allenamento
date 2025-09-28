@@ -33,6 +33,7 @@ npm install
 
 if [ $? -eq 0 ]; then
     echo "✅ Dipendenze installate con successo!"
+    echo "✅ Tailwind CSS configurato!"
     echo ""
     echo "🚀 Per avviare l'applicazione:"
     echo "   npm run dev"
